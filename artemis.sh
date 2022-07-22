@@ -1,7 +1,5 @@
 #!/bin/sh
 
-base_account=$(curl -s 'https://artemis.ase.in.tum.de/api/account' -H "Authorization: Bearer $bearer")
-
 get_credentials() {
   username=$(grep -s username ~/.config/artemis/artemis_secrets.txt|cut -d ':' -f2)
   password=$(grep -s password ~/.config/artemis/artemis_secrets.txt|cut -d ':' -f2)
@@ -48,20 +46,29 @@ notifications_menu() {
 }
 
 account_menu() {
-  choice=$(printf "Registration Number\nEmail\nID\n"|fzf --height=20% --reverse --prompt="Select an action: ")
+  choice=$(printf "Registration Number\nEmail\nID\n"|fzf --height=20% --reverse --prompt="Select an action: " --cycle)
   case "$choice" in
     "Registration Number")
-      printf "Here is your registration number: %s\n" "$(printf "%s" "$base_account"|
+      printf "Here is your registration number: %s\n" "$(curl -s 'https://artemis.ase.in.tum.de/api/account' \
+        -H "Authorization: Bearer $bearer"|
         sed -nE 's@.*"visibleRegistrationNumber":"([0-9]*)".*@\1@p')"
+      printf "Do you want to continue? (y/n) " && read -r yn
+      [ -z "$yn" ] || [ "$yn" = "y" ] || [ "$yn" = "Y" ] && start_menu
       ;;
     Email)
       # TODO: rewrite better regex
-      printf "Here is your email: %s\n" "$(printf "%s" "$base_account"|
+      printf "Here is your email: %s\n" "$(curl -s 'https://artemis.ase.in.tum.de/api/account' \
+        -H "Authorization: Bearer $bearer"|
         sed -nE 's@.*"email":"([^"]*)".*@\1@p')"
+      printf "Do you want to continue? (y/n) " && read -r yn
+      [ -z "$yn" ] || [ "$yn" = "y" ] || [ "$yn" = "Y" ] && start_menu
       ;;
     ID)
-      printf "Here is your ID: %s\n" "$(printf "%s" "$base_account"|
-        sed -nE 's@.*"id":"([^"]*)".*@\1@p')"
+      printf "Here is your ID: %s\n" "$(curl -s 'https://artemis.ase.in.tum.de/api/account' \
+        -H "Authorization: Bearer $bearer"|
+        sed -nE 's@.*"id":([0-9]*),.*@\1@p')"
+      printf "Do you want to continue? (y/n) " && read -r yn
+      [ -z "$yn" ] || [ "$yn" = "y" ] || [ "$yn" = "Y" ] && start_menu
       ;;
   esac
 }
@@ -69,7 +76,7 @@ account_menu() {
 
 dashboard_menu() {
   choice=$(printf "Intro to SE\nOS\n"|fzf --height=20% --reverse --prompt="Select a course: ")
-  [ -z "$choice" ] && return
+  [ -z "$choice" ] && exit 1
   case "$choice" in
     "Intro to SE")
       course_id="185"
@@ -83,7 +90,7 @@ dashboard_menu() {
 
 course_menu() {
   course_choice=$(printf "Exercises\nLectures\n"|fzf --height=20% --reverse --prompt="Select a course: ")
-  [ -z "$course_choice" ] && return
+  [ -z "$course_choice" ] && exit 1
   case "$course_choice" in
     Exercises)
       while true; do
@@ -166,18 +173,20 @@ programming_exercise_menu() {
         -e 's/\\"/\"/g' -e 's/<br>/\n/g'|fold -s -w 120|less
       ;;
     "Repository Url")
-      repo_url=$(printf "%s" "$exercise_json"|sed -nE 's_.*"repositoryUrl":"([^"]*)".*_\1_p')
-      printf "Here is the repository url: %s\n" "$repo_url"
-      while true; do
-          printf "Do you want to clone the repository? (y/n) "
-          IFS= read -r yn < /dev/tty
-          [ -z "$yn" ] && yn="y"
-          case "$yn" in
-            [Yy]* ) git clone "$repo_url"; break;;
-            [Nn]* ) break;;
-            * ) printf "Please answer yes or no.\n";;
-          esac
-      done
+      printf "This section is not yet implemented yet..."
+      # repo_url=$(printf "%s" "$exercise_json"|sed -nE 's_.*"repositoryUrl":"([^"]*)".*_\1_p')
+      # printf "Here is the repository url: %s\n" "$repo_url"
+      # while true; do
+      #     set -e
+      #     printf "Do you want to clone the repository? (y/n) "
+      #     IFS= read -r yn < /dev/tty
+      #     [ -z "$yn" ] && yn="y"
+      #     case "$yn" in
+      #       [Yy]* ) git clone "$repo_url"; break;;
+      #       [Nn]* ) break;;
+      #       * ) printf "Please answer yes or no.\n";;
+      #     esac
+      # done
       ;;
   esac
 }
